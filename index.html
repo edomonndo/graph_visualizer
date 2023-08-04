@@ -1,0 +1,165 @@
+<html>
+<head>
+  <title>Graph visualizer</title>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style type="text/css">
+      #result {
+        width: auto;
+        height: 600px;
+        border: 1px solid lightgray;
+      }
+    </style>
+    <style type="text/css">
+      svg .goods:hover {
+        stroke-width: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+
+    </div>
+    <div class="container">
+      <div class="row">
+        <p></p>
+      </div>
+      <div class="row">
+        <div style="width:200px;">
+          <div class="mb-3">
+            <p>Graph type:</p>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="is_1_index" onchange="updateOutput()">
+              <label class="form-check-label" for="is_1_index">1-index</label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="show_edge_weight" onchange="updateOutput()">
+              <label class="form-check-label" for="show_edge_weight">Show edge weight</label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="is_directed_graph" onchange="updateOutput()">
+              <label class="form-check-label" for="is_directed_graph">Directed graph</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <p>Examples:</p>
+            <code>
+              N,M<br/>
+              u<sub>1</sub>, v<sub>1</sub>, (w<sub>1</sub>)<br>
+              u<sub>2</sub>, v<sub>2</sub>, (w<sub>2</sub>)<br>
+              ...<br/>
+              u<sub>N</sub>, v<sub>N</sub>, (w<sub>N</sub>)<br>
+            </code>
+          </div>
+        </div>
+        <div style="width:150px;">
+          <div class="mb-3">
+            <p>Input:</p>
+            <textarea class="form-control" id="input" rows="20" oninput="updateOutput()"></textarea>
+          </div>
+        </div>
+        <div class="col">
+          <div class="mb-3">
+            <p>Result:</P>
+            <div id="result">
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+  <script type="text/javascript">
+    function updateOutput() {
+      const input = document.getElementById("input").value;
+      const output = document.getElementById("result");
+      const is_1_index = document.getElementById("is_1_index").checked;
+      const show_edge_weight = document.getElementById("show_edge_weight").checked;
+      const is_directed_graph = document.getElementById("is_directed_graph").checked;
+
+      let N,M;
+      let R;
+      let Vs,us,vs,ws;
+      try {
+        // 入力処理
+        const args = input.trim().split("\n").map((n) => n.split(" "));
+        N = parseInt(args[0][0], 10);
+        M = parseInt(args[0][1], 10);
+        const _R = parseInt(args[0][2], 10);
+        if (!Number.isNaN(_R)) {
+          R = _R;
+        } else if (is_1_index) {
+          R = 1;
+        } else {
+          R = 0;
+        }
+
+        const nums = args.slice(1, M+1);
+        us = nums.map((n) => parseInt(n[0], 10));
+        vs = nums.map((n) => parseInt(n[1], 10));
+        ws = Array(M);
+        if (show_edge_weight) {
+          ws = nums.map((n) => parseInt(n[2], 10));
+        }
+      } catch (error) {
+        document.getElementById("result").innerHTML = "<p>Input error</p>";
+      }
+      
+      let node_array = [];
+      let edge_array = [];
+      try {
+        // グラフ構築
+        for (let i=0; i<N; i++) {
+          let node_label = i;
+          if (is_1_index) {
+            node_label += 1;
+          }
+          node_label = node_label.toString();
+          node_array.push({id: i, label: node_label});
+        }
+
+        for (let i=0; i<M; i++) {
+          let offset = 0;
+          if (is_1_index) {offset = -1;}
+          let u_idx = us[i] + offset;
+          let v_idx = vs[i] + offset;
+          let w = "";
+          if (show_edge_weight) {
+            w = ws[i];
+          }
+
+          let edge_title = "Edge id=" + i;
+          let arrows_option = "";
+          if (is_directed_graph) {
+            arrows_option = "to";
+          }
+          edge_array.push({id: i, from: u_idx, to: v_idx, label: w.toString(), title: edge_title, arrows: arrows_option});
+        }
+      } catch (error) {
+        document.getElementById("result").innerHTML = "<p>Construct error</p>";
+      }
+      
+      try {
+        // グラフ可視化
+        const nodes = new vis.DataSet(node_array);
+        const edges = new vis.DataSet(edge_array);
+        const data = {nodes: nodes, edges: edges};
+        const options = {
+          layout:{
+            hierarchical: {
+              enabled: true,
+              sortMethod: "directed",
+            }
+          }
+        };
+        const network = new vis.Network(output, data, options);
+      } catch (error) {
+        document.getElementById("result").innerHTML = "<p>Visualize error</p>";
+      }
+    }
+  </script>
+</html>
